@@ -4,8 +4,9 @@
 
 dsh（DeepSeek Harness）是住在云吞里的 Agent：DeepSeek 官方的 dsh（`@deepseek-ai/dsh`，经它自带的
 `--profile acp` 说 ACP）用核心分配的 Matrix 身份和主人聊天，经 Wonton MCP 总线调用工具。模型网关接好时
-默认走网关，不用账号、也不用填 key；没接网关时 Agent 照常启动，在聊天里发 `/wonton login` 或从插件页打开
-登录网页，贴一个自己的 DeepSeek API key（platform.deepseek.com 创建）。登录态存在数据目录的
+默认走网关，不用账号、也不用填 key；没接网关时 Agent 照常启动，在聊天里发 `/wonton login`（这个聊天
+对应的 Bot）或从插件页打开登录网页（默认 Bot），贴一个自己的 DeepSeek API key（platform.deepseek.com
+创建）。登录态存在数据目录的
 `.credentials.yaml`（0600），容器重建后还在；网关接入或卸掉后重启容器即切换。
 
 dsh 的会话日志和遥测默认回传上游，插件把它关了（`DSH_TELEMETRY_MODE=DISABLED`；接网关时同时关掉
