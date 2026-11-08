@@ -3,7 +3,7 @@
 # agent 的凭据（DeepSeek API key）和工作区不给 bridge。
 services:
   agent:
-    image: ghcr.io/geraldpeng6/wonton-plugin-dsh:0.1.0
+    image: ghcr.io/geraldpeng6/wonton-plugin-dsh:0.1.1
     # 底座镜像也是这个用户；bridge 挂同一个 run/ 目录，两个服务的属主必须相同，否则核心拒绝安装。
     user: "65532:65532"
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
       WONTON_AGENT_WORKSPACE: /workspace
       WONTON_MATRIX_HOMESERVER: ${WONTON_MATRIX_HOMESERVER:?需要 Matrix 地址}
       WONTON_MATRIX_ACCESS_TOKEN: ${WONTON_MATRIX_ACCESS_TOKEN:?需要 Bot 的 Matrix 访问令牌}
-      WONTON_MATRIX_OWNER: ${WONTON_MATRIX_OWNER:?需要主人的 Matrix 用户 ID}
+      WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}
       WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
       WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
       # dsh 的沙箱在容器里自适应（没有 bwrap 用 Landlock），默认预设 workspace-write：
@@ -71,9 +71,9 @@ services:
       start_interval: 2s
 
 x-wonton:
-  spec: "0.6"
+  spec: "0.9"
   id: ai.deepseek.dsh
-  version: 0.1.0
+  version: 0.1.1
   kind: agent
   title: { zh: dsh, en: dsh }
   description:
@@ -102,10 +102,9 @@ x-wonton:
       bot) and paste your own DeepSeek API key (created at platform.deepseek.com); the login state stays
       in the data directory across container rebuilds.
   release_notes:
-    zh: 首个版本：DeepSeek 的 dsh 编程 Agent，经模型网关或自己的 DeepSeek API key 使用。
+    zh: 首个版本：DeepSeek 的 dsh 编程 Agent，经模型网关或自己的 DeepSeek API key 使用。名单用核心的名单变量（插件规范 0.9）。
     en: >-
-      Initial release: DeepSeek's dsh coding agent, used through the model gateway or your own
-      DeepSeek API key.
+      Initial release: DeepSeek's dsh coding agent, used through the model gateway or your own DeepSeek API key. The allow list uses the core's user list (spec 0.9).
   agent:
     protocol: acp
     # dsh 没有账号登录（容器里也不可用），只有 API key：读一行写进 ~/.dsh/.credentials.yaml（0600）。
