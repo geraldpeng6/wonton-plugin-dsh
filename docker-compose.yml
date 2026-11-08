@@ -1,0 +1,131 @@
+# dsh Agent：bridge 说 ACP，agent 跑底座镜像加官方 dsh CLI（@deepseek-ai/dsh，MIT，打进镜像）。
+# 两个服务只共享 ACP socket 所在的 run/ 子目录；bridge 的 crypto store 和 Matrix 令牌不给 agent，
+# agent 的凭据（DeepSeek API key）和工作区不给 bridge。
+services:
+  agent:
+    image: ghcr.io/geraldpeng6/wonton-plugin-dsh:0.1.1
+    # 底座镜像也是这个用户；bridge 挂同一个 run/ 目录，两个服务的属主必须相同，否则核心拒绝安装。
+    user: "65532:65532"
+    restart: unless-stopped
+    environment:
+      HOME: /data/agent/home
+      # dsh 的凭据（~/.dsh/.credentials.yaml）、会话和 acp profile 补丁都放在 HOME 下的 .dsh/，
+      # 数据卷里，容器重建不丢。
+      DSH_HOME: /data/agent/home/.dsh
+      # 官方路由默认随请求回传会话日志和 OTLP 遥测；家里自用，全关。
+      DSH_TELEMETRY_MODE: DISABLED
+      # 底座入口每次启动按有没有值选路：三个变量都有值时把网关写进 dsh 的 acp profile 补丁并关掉
+      # 会话日志插件（会话日志不能发给网关），为空就不写，dsh 用自己的登录态（DeepSeek API key）；
+      # 密钥只经 apiKeyEnv 引用变量名，不落盘。
+      WONTON_MODEL_BASE_URL: ${WONTON_MODEL_BASE_URL:-}
+      WONTON_MODEL_API_KEY: ${WONTON_MODEL_API_KEY:-}
+      WONTON_MODEL_DEFAULT: ${WONTON_MODEL_DEFAULT:-}
+      WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
+      WONTON_ACP_SOCKET: /data/run/acp.sock
+      WONTON_AGENT_WORKSPACE: /workspace
+      # 出网代理由核心注入：没接网关时，用户自己的 key 发往官方 DeepSeek 要经它出去，内部地址核心已
+      # 写进 NO_PROXY。这里不写代理变量，写了空值会把核心的注入顶掉。
+    volumes:
+      - ${WONTON_BOT_DATA:?需要 Bot 数据目录}/agent:/data/agent
+      - ${WONTON_BOT_DATA}/run:/data/run
+      - ${WONTON_BOT_DATA}/workspace:/workspace
+    healthcheck:
+      # socket 是入口建好 ACP 转发后才有的，有这个文件就说明 Agent 侧能接连接。
+      test: ["CMD", "test", "-S", "/data/run/acp.sock"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      start_interval: 2s
+
+  bridge:
+    image: ghcr.io/geraldpeng6/wonton-acp-bridge:main-83d4297@sha256:6b0645e4cd8a5b80b6c25e4c17334c8d4621b9959756902785bae58b558b2326
+    user: "65532:65532"
+    restart: unless-stopped
+    depends_on:
+      agent:
+        condition: service_started
+    environment:
+      HOME: /data/bridge
+      WONTON_BOT_DATA: /data
+      WONTON_BRIDGE_DATA: /data/bridge
+      WONTON_ACP_SOCKET: /data/run/acp.sock
+      WONTON_AGENT_WORKSPACE: /workspace
+      WONTON_MATRIX_HOMESERVER: ${WONTON_MATRIX_HOMESERVER:?需要 Matrix 地址}
+      WONTON_MATRIX_ACCESS_TOKEN: ${WONTON_MATRIX_ACCESS_TOKEN:?需要 Bot 的 Matrix 访问令牌}
+      WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}
+      WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
+      WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
+      # dsh 的沙箱在容器里自适应（没有 bwrap 用 Landlock），默认预设 workspace-write：
+      # 改工作区外的文件、跑出网命令会经确认卡片问主人。read-only 对编码 Agent 太紧，工具几乎用不了。
+      # dsh 的 ACP 不认 session/set_mode（模式走 configOptions）：桥按 ACP 规范需要在 Agent 不声明
+      # session modes 时跳过这条调用，否则会话建不起来（桥的各发布版本都还没有这个跳过）。
+      WONTON_ACP_MODE: workspace-write
+    volumes:
+      - ${WONTON_BOT_DATA}/bridge:/data/bridge
+      - ${WONTON_BOT_DATA}/run:/data/run
+    healthcheck:
+      test: ["CMD", "test", "-S", "/data/run/acp.sock"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 2s
+
+x-wonton:
+  spec: "0.9"
+  id: ai.deepseek.dsh
+  version: 0.1.1
+  kind: agent
+  title: { zh: dsh, en: dsh }
+  description:
+    zh: DeepSeek 的编程 Agent（dsh），在聊天里写代码、跑命令
+    en: DeepSeek's coding agent (dsh) that writes code and runs commands in chat
+  icon: icon.svg
+  notices: [NOTICE, images/wonton-plugin-dsh/LICENSE.dsh]
+  author: { name: Wonton plugin authors }
+  homepage: https://github.com/deepseek-ai/deepseek-harness
+  # dsh 上游的许可证；插件包自己的许可证在 LICENSE。
+  license: MIT
+  tags: { zh: [AI, 开发], en: [AI, Development] }
+  about:
+    zh: |
+      DeepSeek 的 dsh 以 Bot 的身份住进聊天：模型网关接好时默认走网关，不用账号，也不用填任何 key。
+      它住在自己的容器里，在 /workspace 工作区写代码、跑命令，改工作区之外的文件或出网先经确认卡片问你；
+      Wonton 插件的工具也从聊天里调。没接网关时，在聊天里发 /wonton login（这个聊天对应的 Bot）或从
+      插件页打开登录网页（默认 Bot），贴一个自己的 DeepSeek API key（platform.deepseek.com 创建），
+      登录态存在数据目录，容器重建后还在。
+    en: |
+      DeepSeek's dsh lives in the chat as a bot: when the model gateway is connected it goes through the
+      gateway by default, with no account and no key to fill in. It works in its own container, coding and
+      running commands in /workspace, and asks through confirmation cards before touching files outside it
+      or reaching the network; Wonton plugin tools are called from the chat too. Without the gateway, send
+      /wonton login in the chat (this chat's bot) or open the login page from the plugin screen (default
+      bot) and paste your own DeepSeek API key (created at platform.deepseek.com); the login state stays
+      in the data directory across container rebuilds.
+  release_notes:
+    zh: 首个版本：DeepSeek 的 dsh 编程 Agent，经模型网关或自己的 DeepSeek API key 使用。名单用核心的名单变量（插件规范 0.9）。
+    en: >-
+      Initial release: DeepSeek's dsh coding agent, used through the model gateway or your own DeepSeek API key. The allow list uses the core's user list (spec 0.9).
+  agent:
+    protocol: acp
+    # dsh 没有账号登录（容器里也不可用），只有 API key：读一行写进 ~/.dsh/.credentials.yaml（0600）。
+    login:
+      - id: api-key
+        title: { zh: DeepSeek API key, en: DeepSeek API key }
+  webui:
+    service: agent
+    port: 8080
+    sso: none
+    path: /
+  bot:
+    display_name: { zh: dsh, en: dsh }
+  bots:
+    services: [agent, bridge]
+  permissions:
+    - matrix.bot
+    - tools
+    - models
+    # 没接网关时，用户自己的 key 发往官方 DeepSeek 要出网。
+    - network.egress
+  requirements:
+    arch: [amd64, arm64]
+    memory: 1G
