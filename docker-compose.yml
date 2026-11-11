@@ -38,7 +38,7 @@ services:
       start_interval: 2s
 
   bridge:
-    image: ghcr.io/geraldpeng6/wonton-acp-bridge:main-83d4297@sha256:6b0645e4cd8a5b80b6c25e4c17334c8d4621b9959756902785bae58b558b2326
+    image: ghcr.io/wontonapp/wonton-acp-bridge:0.2.1@sha256:4523c3cfef196d27521d8eaa4f4bb33784fa0fc01e1fe3071f6eb39ff0721c15
     user: "65532:65532"
     restart: unless-stopped
     depends_on:
@@ -73,7 +73,7 @@ services:
 x-wonton:
   spec: "0.9"
   id: ai.deepseek.dsh
-  version: 0.1.1
+  version: 0.1.2
   kind: agent
   title: { zh: dsh, en: dsh }
   description:
@@ -102,9 +102,8 @@ x-wonton:
       bot) and paste your own DeepSeek API key (created at platform.deepseek.com); the login state stays
       in the data directory across container rebuilds.
   release_notes:
-    zh: 首个版本：DeepSeek 的 dsh 编程 Agent，经模型网关或自己的 DeepSeek API key 使用。名单用核心的名单变量（插件规范 0.9）。
-    en: >-
-      Initial release: DeepSeek's dsh coding agent, used through the model gateway or your own DeepSeek API key. The allow list uses the core's user list (spec 0.9).
+    zh: "内置的 ACP bridge 升到 0.2.1 正式镜像。"
+    en: "Ships the 0.2.1 release image of the ACP bridge."
   agent:
     protocol: acp
     # dsh 没有账号登录（容器里也不可用），只有 API key：读一行写进 ~/.dsh/.credentials.yaml（0600）。
