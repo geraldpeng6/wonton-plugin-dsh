@@ -3,7 +3,7 @@
 # agent 的凭据（DeepSeek API key）和工作区不给 bridge。
 services:
   agent:
-    image: ghcr.io/geraldpeng6/wonton-plugin-dsh:0.1.1@sha256:4f509193f3052c1376411a89d77bb676d55b6aa77d98a7320949d141ca942817
+    image: ghcr.io/geraldpeng6/wonton-plugin-dsh:0.1.2@sha256:3b4d79fadeed6500ed69b256c4993a8bd7725e4a1151b3a32d1bf05ce4eaad27
     # 底座镜像也是这个用户；bridge 挂同一个 run/ 目录，两个服务的属主必须相同，否则核心拒绝安装。
     user: "65532:65532"
     restart: unless-stopped
