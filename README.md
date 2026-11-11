@@ -1,5 +1,9 @@
 # dsh
 
+**本插件已迁到 [wontonapp/wonton-agents](https://github.com/wontonapp/wonton-agents) 仓库的
+[`agents/dsh/`](https://github.com/wontonapp/wonton-agents/tree/main/agents/dsh)：后续版本、问题
+和发布都在那边；来源支持仓库子目录后，商店从新位置安装。本仓库归档前不再开发。**
+
 开发流程见[插件开发指南](https://github.com/wontonapp/wonton-docs/blob/main/develop.md)。
 
 dsh（DeepSeek Harness）是住在云吞里的 Agent：DeepSeek 官方的 dsh（`@deepseek-ai/dsh`，经它自带的
