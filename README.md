@@ -1,6 +1,6 @@
 # dsh
 
-开发流程见[插件开发指南](https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md)。
+开发流程见[插件开发指南](https://github.com/wontonapp/wonton-docs/blob/main/develop.md)。
 
 dsh（DeepSeek Harness）是住在云吞里的 Agent：DeepSeek 官方的 dsh（`@deepseek-ai/dsh`，经它自带的
 `--profile acp` 说 ACP）用核心分配的 Matrix 身份和主人聊天，经 Wonton MCP 总线调用工具。模型网关接好时
